@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verificación de CFDI – Demo</title>
+
+    <!-- Bootstrap 5 → CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+	<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+
+<!-- Bootstrap Icons → NUEVO -->
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+  rel="stylesheet"
+/>
+   <style>
+  /* ——— Colores y tipografía base ——— */
+  :root{
+    /* Verde institucional gob.mx  ─ ajusta el tono si lo necesitas */
+    --gobmx-green:#0C231E;
+  }
+
+  body{
+    padding-top:4.5rem; /* navbar fixed */
+  }
+  .navbar-sat{background:#1b1d21;}
+  .sat-red{height:4px;background:#930000;}
+
+  footer{background:#f5f5f5;padding:2rem 0;} /* footer interior gris */
+
+  /* Tabla resultado */
+  #cfdiResult{
+    display:none; /* hidden until valid */
+  }               /* <<—--- llave que faltaba */
+
+  /* Footer gob.mx */
+  footer.footer-gobmx{
+    background:var(--gobmx-green); /* ahora sí se ve verde */
+    color:#fff;
+    padding:0;
+    font-size:0.95rem;
+  }
+  .footer-gobmx a{color:#fff;text-decoration:none;}
+  .footer-gobmx a:hover{text-decoration:underline;}
+
+  .footer-pattern{
+    height:64px;
+    background:var(--gobmx-green)
+       url("https://framework-gb.cdn.gob.mx/gobmx/design/images/pattern-footer.svg")
+       repeat-x bottom;
+    background-size:contain;
+  }
+</style>
+
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark navbar-sat px-3">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+          <!-- Logo externo -->
+          <img
+            src="https://www.gob.mx/resources/img/logo_gob_mx.png"
+            alt="SAT"
+            height="35"
+            class="me-2"
+          />
+          <span>Factura electrónica</span>
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNav"
+          aria-controls="mainNav"
+          aria-expanded="false"
+          aria-label="Menú"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="#">Trámites</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Gobierno</a></li>
+
+      </div>
+    </nav>
+    <div class="sat-red"></div>
+
+    <!-- MAIN -->
+    <main class="container my-5">
+	<img
+              src="https://verificacfdi.facturaelectronica.sat.gob.mx/Content/images/Logo_SHCP_SAT-.jpg"
+              alt="Sello digital"
+              style="max-width: 220px; height: auto"
+            />
+      <h1 class="fw-bold">Verificación de Comprobantes Fiscales Digitales por Internet</h1>
+      <p class="lead">A través de esta opción, usted podrá verificar si el comprobante fue certificado por el SAT.</p>
+
+      <!-- FORM -->
+      <form id="cfdiForm" class="row g-3 needs-validation" novalidate>
+        <div class="col-md-4">
+          <label class="form-label" for="uuid">Folio fiscal (UUID) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="uuid" 
+ 	value="FF31B287-F61E-43AC-AE59-3FCCAB132390 "
+      	required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="rfcEm">RFC emisor <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="rfcEm" 
+	value="KACX900528PB6"
+	required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="rfcRe">RFC receptor <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="rfcRe" 
+	value="COAJ7703199Z1"
+	required />
+        </div>
+
+        <!-- CAPTCHA -->
+        <div class="col-md-4">
+          <label class="form-label">Captcha <span class="text-danger">*</span></label>
+          <div
+            class="border rounded bg-light d-flex align-items-center justify-content-center fs-4 fw-semibold"
+            style="height: 60px"
+            id="captchaText"
+          ></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="refreshCaptcha">Actualizar</button>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="captchaInput">Ingresa los dígitos</label>
+          <input type="text" class="form-control" id="captchaInput" required />
+        </div>
+
+        <div class="col-12 text-end mt-3">
+          <button class="btn btn-primary" type="submit">Verificar CFDI</button>
+        </div>
+      </form>
+
+      <!-- RESULTADO -->
+      <div class="card mt-5" id="cfdiResult">
+        <div class="card-body">
+          <table class="table" id="resultTable">
+            <tbody>
+              <tr>
+                <th>RFC del emisor</th>
+                <th>Nombre o razón social del emisor</th>
+                <th>RFC del receptor</th>
+                <th>Nombre o razón social del receptor</th>
+              </tr>
+              <tr>
+                <td id="tdRfcEmisor"></td>
+                <td id="tdNombreEmisor"></td>
+                <td id="tdRfcReceptor"></td>
+                <td id="tdNombreReceptor"></td>
+              </tr>
+              <tr>
+                <th>Folio fiscal</th>
+                <th>Fecha de expedición</th>
+                <th>Fecha certificación SAT</th>
+                <th>PAC que certificó</th>
+              </tr>
+              <tr>
+                <td id="tdFolio"></td>
+                <td id="tdFechaExp"></td>
+                <td id="tdFechaCert"></td>
+                <td id="tdPac"></td>
+              </tr>
+              <tr>
+                <th>Total del CFDI</th>
+                <th>Efecto del comprobante</th>
+                <th>Estado CFDI</th>
+                <th></th>
+              </tr>
+              <tr>
+                <td id="tdTotal"></td>
+                <td id="tdEfecto"></td>
+                <td id="tdEstado"></td>
+                <td></td>
+              </tr>
+              <tr>
+                <th>Estatus de cancelación</th>
+                <th>Fecha de proceso de cancelación</th>
+                <th></th>
+                <th></th>
+              </tr>
+              <tr>
+                <td id="tdEstatus"></td>
+                <td id="tdFechaCanc"></td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- IMÁGENES FINALES -->
+          <div class="d-flex justify-content-between mt-4">
+            <img
+              src="https://verificacfdi.facturaelectronica.sat.gob.mx/Content/images/Logo_SHCP_SAT-.jpg"
+              alt="Sello digital"
+              style="max-width: 220px; height: auto"
+            />
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/5/56/Logo_del_Gobierno_de_M%C3%A9xico_%282024-2030%29.png"
+              alt="Código QR CFDI"
+              style="max-width: 140px; height: auto"
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+
+   <!-- FOOTER COMPLETO -->
+    <footer class="footer-gobmx mt-5">
+      <div class="container py-5">
+        <div class="row gy-4 text-white">
+          <!-- Columna 1: Logo -->
+          <div class="col-lg-3 col-md-6">
+            <img src="https://www.gob.mx/resources/img/logo_gob_mx.png" alt="Gobierno de México" class="img-fluid mb-3" style="max-width:200px;" />
+          </div>
+
+          <!-- Columna 2: Enlaces -->
+          <div class="col-lg-3 col-md-6">
+            <h6 class="text-uppercase fw-bold mb-2">Enlaces</h6>
+            <ul class="list-unstyled mb-0">
+              <li><a href="#">Participa</a></li>
+              <li><a href="#">Publicaciones Oficiales</a></li>
+              <li><a href="#">Marco Jurídico</a></li>
+              <li><a href="#">Plataforma Nacional de Transparencia</a></li>
+            </ul>
+          </div>
+
+          <!-- Columna 3: ¿Qué es gob.mx? -->
+          <div class="col-lg-3 col-md-6">
+            <h6 class="text-uppercase fw-bold mb-2">¿Qué es gob.mx?</h6>
+            <p class="mb-2">Es el portal único de trámites, información y participación ciudadana. <a href="#">Leer más</a></p>
+            <ul class="list-unstyled mb-0">
+              <li><a href="#">Portal de datos abiertos</a></li>
+              <li><a href="#">Declaración de accesibilidad</a></li>
+              <li><a href="#">Aviso de privacidad integral</a></li>
+              <li><a href="#">Aviso de privacidad simplificado</a></li>
+              <li><a href="#">Términos y condiciones</a></li>
+              <li><a href="#">Política de seguridad</a></li>
+              <li><a href="#">Mapa de sitio</a></li>
+            </ul>
+          </div>
+
+          <!-- Columna 4: Denuncia / Redes -->
+          <div class="col-lg-3 col-md-6">
+            <h6 class="text-uppercase fw-bold mb-2">Denuncia contra servidores públicos</h6>
+            <p class="mb-3"><a href="#">Ir al sistema de denuncias</a></p>
+            <h6 class="text-uppercase fw-bold mb-2">Síguenos en</h6>
+            <a class="me-3" href="#" aria-label="Facebook"><i class="bi bi-facebook fs-4"></i></a>
+            <a href="#" aria-label="Twitter"><i class="bi bi-twitter fs-4"></i></a>
+          </div>
+        </div>
+      </div>
+      <!-- franja decorativa inferior -->
+      <div class="footer-pattern"></div>
+    </footer>
+
+    <!-- JS → Boot + lógica -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Captcha simple
+      function genCaptcha() {
+        const chars = "ABCDEFGHJKMNPQRTUVWXYZ2346789";
+        let txt = "";
+        for (let i = 0; i < 6; i++) txt += chars[Math.floor(Math.random() * chars.length)];
+        return txt;
+      }
+      let currentCaptcha = "";
+      function renderCaptcha() {
+        currentCaptcha = genCaptcha();
+        document.getElementById("captchaText").textContent = currentCaptcha.split("").join(" ");
+      }
+      document.getElementById("refreshCaptcha").addEventListener("click", renderCaptcha);
+      renderCaptcha();
+
+      // Form submit
+      document.getElementById("cfdiForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!this.checkValidity()) {
+          this.classList.add("was-validated");
+          return;
+        }
+        if (
+          document.getElementById("captchaInput").value.trim().toUpperCase() !== currentCaptcha
+        ) {
+          alert("Captcha incorrecto. Vuelve a intentarlo.");
+          renderCaptcha();
+          return;
+        }
+        renderResult();
+      });
+
+      function renderResult() {
+        document.getElementById("tdRfcEmisor").textContent = document.getElementById("rfcEm").value.toUpperCase();
+        document.getElementById("tdNombreEmisor").textContent = "ARMIN ARMANDO KANTUN CIME";
+        document.getElementById("tdRfcReceptor").textContent = document.getElementById("rfcRe").value.toUpperCase();
+        document.getElementById("tdNombreReceptor").textContent = "JOSEFINA CONTRERAS ALBARRAN";
+        document.getElementById("tdFolio").textContent = document.getElementById("uuid").value;
+        document.getElementById("tdFechaExp").textContent = "2026-02-06 07:09:41";
+        document.getElementById("tdFechaCert").textContent = "2026-02-06 07:09:41";
+        document.getElementById("tdPac").textContent = "LSO1306189R5";
+        document.getElementById("tdTotal").textContent = "247,500.00";
+        document.getElementById("tdEfecto").textContent = "Ingreso";
+        document.getElementById("tdEstado").textContent = "ACTIVO";
+        document.getElementById("tdEstatus").textContent = "INACTIVO";
+        document.getElementById("tdFechaCanc").textContent = "N/A";
+        document.getElementById("cfdiResult").style.display = "block";
+      }
+
+    </script>
+  </body>
+</html>
